@@ -10,14 +10,18 @@ using System.Linq;
 using System.ServiceProcess;
 using System.Text;
 using System.Threading.Tasks;
+using System.Security.Permissions;
+using System.Net;
+using Microsoft.Graph;
+using Microsoft.Graph.Models;
 
 namespace WindowsService1
 {
     public partial class Service1 : ServiceBase
     {
-        private readonly string _localFolderPath = @"C:\Users\vernenat\OneDrive - Tietoevry\Desktop\localfolder";
-        private readonly string _fileSharePath = @"C:\Users\vernenat\OneDrive - Tietoevry\Desktop\fileshare";
-        private readonly string _logFolderPath = @"C:\Users\vernenat\OneDrive - Tietoevry\Desktop\logfolder";
+        private readonly string _localFolderPath = @"C:\Users\natal\OneDrive\Desktop\localfolder";
+        private readonly string _fileSharePath = @"\\DESKTOP-BHSHK2E\fileshare";
+        private readonly string _logFolderPath = @"C:\Users\natal\OneDrive\Desktop\logfolder";
 
         private readonly FileSystemWatcher _localWatcher = new FileSystemWatcher();
         private readonly FileSystemWatcher _fileShareWatcher = new FileSystemWatcher();
@@ -28,6 +32,7 @@ namespace WindowsService1
             InitializeComponent();
         }
 
+        [PermissionSet(SecurityAction.Demand, Name = "FullTrust")]
         protected override void OnStart(string[] args)
         {
             try
@@ -46,7 +51,8 @@ namespace WindowsService1
                 _fileShareWatcher.Path = _fileSharePath;
                 _fileShareWatcher.IncludeSubdirectories = true;
                 _fileShareWatcher.EnableRaisingEvents = true;
-                
+                _fileShareWatcher.Created += OnChangedFileshare;
+
                 SyncFilesFromLocal();
                 SyncFilesFromFileshare();
             }
