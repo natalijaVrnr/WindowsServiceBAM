@@ -12,16 +12,15 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Security.Permissions;
 using System.Net;
-using Microsoft.Graph;
-using Microsoft.Graph.Models;
+
 
 namespace WindowsService1
 {
     public partial class Service1 : ServiceBase
     {
-        private readonly string _localFolderPath = @"C:\Users\natal\OneDrive\Desktop\localfolder";
-        private readonly string _fileSharePath = @"\\DESKTOP-BHSHK2E\fileshare";
-        private readonly string _logFolderPath = @"C:\Users\natal\OneDrive\Desktop\logfolder";
+        private string _localFolderPath = "";
+        private string _fileSharePath = "";
+        private string _logFolderPath = "";
 
         private readonly FileSystemWatcher _localWatcher = new FileSystemWatcher();
         private readonly FileSystemWatcher _fileShareWatcher = new FileSystemWatcher();
@@ -38,7 +37,17 @@ namespace WindowsService1
             try
             {
                 WriteToLogs($"{DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss.fff")} Service was started");
+
+                string[] imagePathArgs = Environment.GetCommandLineArgs();
+
+                _localFolderPath = $@"{imagePathArgs[2]}";
+                _fileSharePath = $@"{imagePathArgs[4]}";
+                _logFolderPath = $@"{imagePathArgs[6]}";
                 
+                WriteToLogs($"{DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss.fff")} _localFolderPath: {_localFolderPath}");
+                WriteToLogs($"{DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss.fff")} _fileSharePath: {_fileSharePath}");
+                WriteToLogs($"{DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss.fff")} _logFolderPath: {_logFolderPath}");
+
                 WriteToLogs($"{DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss.fff")} Setting up local folder watcher");
 
                 _localWatcher.Path = _localFolderPath;
