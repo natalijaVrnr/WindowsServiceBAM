@@ -1,18 +1,11 @@
 ﻿using Microsoft.Extensions.FileSystemGlobbing.Abstractions;
 using Microsoft.Extensions.FileSystemGlobbing;
 using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.ServiceProcess;
-using System.Text;
-using System.Threading.Tasks;
 using System.Security.Permissions;
 using System.Net;
-
 
 namespace WindowsService1
 {
@@ -26,6 +19,8 @@ namespace WindowsService1
         private readonly FileSystemWatcher _fileShareWatcher = new FileSystemWatcher();
 
         private static object logFileLock = new object();
+
+        private NetworkCredential credentials = new NetworkCredential($@"DESKTOP-BHSHK2E\n.kundzina@gmail.com", "AmberHeard15");
         public Service1()
         {
             InitializeComponent();
@@ -34,7 +29,7 @@ namespace WindowsService1
         [PermissionSet(SecurityAction.Demand, Name = "FullTrust")]
         protected override void OnStart(string[] args)
         {
-            try
+            try 
             {
                 WriteToLogs($"{DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss.fff")} Service was started");
 
@@ -57,10 +52,13 @@ namespace WindowsService1
 
                 WriteToLogs($"{DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss.fff")} Setting up file share folder watcher");
 
-                _fileShareWatcher.Path = _fileSharePath;
-                _fileShareWatcher.IncludeSubdirectories = true;
-                _fileShareWatcher.EnableRaisingEvents = true;
-                _fileShareWatcher.Created += OnChangedFileshare;
+                using (new NetworkConnection(_fileSharePath, credentials))
+                {
+                    _fileShareWatcher.Path = _fileSharePath;
+                    _fileShareWatcher.IncludeSubdirectories = true;
+                    _fileShareWatcher.EnableRaisingEvents = true;
+                    _fileShareWatcher.Created += OnChangedFileshare;
+                }
 
                 SyncFilesFromLocal();
                 SyncFilesFromFileshare();
@@ -111,68 +109,74 @@ namespace WindowsService1
 
         private void SyncFilesFromLocal()
         {
-            WriteToLogs($"{DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss.fff")} Sync from local folder started");
-
-            var matcher = new Matcher();
-            matcher.AddInclude("**/*.txt");
-
-            var localDirectoryInfo = new DirectoryInfoWrapper(new DirectoryInfo(_localFolderPath));
-            var fileShareDirectoryInfo = new DirectoryInfoWrapper(new DirectoryInfo(_fileSharePath));
-
-            // Sync from local to file share
-            var localFiles = matcher.Execute(localDirectoryInfo);
-            WriteToLogs($"{DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss.fff")} Found {localFiles.Files.Count()} files in local folder");
-
-            foreach (var localFile in localFiles.Files)
+            using (new NetworkConnection(_fileSharePath, credentials))
             {
-                var fileSharePath = Path.Combine(fileShareDirectoryInfo.FullName, localFile.Path);
-                var fileShareFileInfo = new FileInfo(fileSharePath);
+                WriteToLogs($"{DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss.fff")} Sync from local folder started");
 
-                if (!fileShareFileInfo.Exists)
+                var matcher = new Matcher();
+                matcher.AddInclude("**/*.txt");
+
+                var localDirectoryInfo = new DirectoryInfoWrapper(new DirectoryInfo(_localFolderPath));
+                var fileShareDirectoryInfo = new DirectoryInfoWrapper(new DirectoryInfo(_fileSharePath));
+
+                // Sync from local to file share
+                var localFiles = matcher.Execute(localDirectoryInfo);
+                WriteToLogs($"{DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss.fff")} Found {localFiles.Files.Count()} files in local folder");
+
+                foreach (var localFile in localFiles.Files)
                 {
-                    var localPath = Path.Combine(_localFolderPath, localFile.Path);
+                    var fileSharePath = Path.Combine(fileShareDirectoryInfo.FullName, localFile.Path);
+                    var fileShareFileInfo = new FileInfo(fileSharePath);
 
-                    // Copy the file from local to file share
-                    WriteToLogs($"{DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss.fff")} Copying {new FileInfo(localFile.Path).Name} to fileshare folder");
-                    File.Copy(localPath, fileSharePath, true);
-                    WriteToLogs($"{DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss.fff")} File {new FileInfo(localFile.Path).Name} successfully copied to fileshare folder");
+                    if (!fileShareFileInfo.Exists)
+                    {
+                        var localPath = Path.Combine(_localFolderPath, localFile.Path);
+
+                        // Copy the file from local to file share
+                        WriteToLogs($"{DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss.fff")} Copying {new FileInfo(localFile.Path).Name} to fileshare folder");
+                        File.Copy(localPath, fileSharePath, true);
+                        WriteToLogs($"{DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss.fff")} File {new FileInfo(localFile.Path).Name} successfully copied to fileshare folder");
+                    }
                 }
-            }
 
-            WriteToLogs($"{DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss.fff")} Sync from local folder completed");
+                WriteToLogs($"{DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss.fff")} Sync from local folder completed");
+            }    
         }
 
         private void SyncFilesFromFileshare()
         {
-            WriteToLogs($"{DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss.fff")} Sync from fileshare folder started");
-
-            var matcher = new Matcher();
-            matcher.AddInclude("**/*.txt");
-
-            var localDirectoryInfo = new DirectoryInfoWrapper(new DirectoryInfo(_localFolderPath));
-            var fileShareDirectoryInfo = new DirectoryInfoWrapper(new DirectoryInfo(_fileSharePath));
-
-            // Sync from file share to local
-            var fileShareFiles = matcher.Execute(fileShareDirectoryInfo);
-            WriteToLogs($"{DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss.fff")} Found {fileShareFiles.Files.Count()} files in fileshare folder");
-
-            foreach (var fileShareFile in fileShareFiles.Files)
+            using (new NetworkConnection(_fileSharePath, credentials))
             {
-                var localPath = Path.Combine(localDirectoryInfo.FullName, fileShareFile.Path);
-                var localFileInfo = new FileInfo(localPath);
+                WriteToLogs($"{DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss.fff")} Sync from fileshare folder started");
 
-                if (!localFileInfo.Exists)
+                var matcher = new Matcher();
+                matcher.AddInclude("**/*.txt");
+
+                var localDirectoryInfo = new DirectoryInfoWrapper(new DirectoryInfo(_localFolderPath));
+                var fileShareDirectoryInfo = new DirectoryInfoWrapper(new DirectoryInfo(_fileSharePath));
+
+                // Sync from file share to local
+                var fileShareFiles = matcher.Execute(fileShareDirectoryInfo);
+                WriteToLogs($"{DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss.fff")} Found {fileShareFiles.Files.Count()} files in fileshare folder");
+
+                foreach (var fileShareFile in fileShareFiles.Files)
                 {
-                    var fileSharePath = Path.Combine(_fileSharePath, fileShareFile.Path);
+                    var localPath = Path.Combine(localDirectoryInfo.FullName, fileShareFile.Path);
+                    var localFileInfo = new FileInfo(localPath);
 
-                    // Copy the file from file share to local
-                    WriteToLogs($"{DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss.fff")} Copying {new FileInfo(fileShareFile.Path).Name} to local folder");
-                    File.Copy(fileSharePath, localPath, true);
-                    WriteToLogs($"{DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss.fff")} File {new FileInfo(fileShareFile.Path).Name} successfully copied to local folder");
+                    if (!localFileInfo.Exists)
+                    {
+                        var fileSharePath = Path.Combine(_fileSharePath, fileShareFile.Path);
+
+                        // Copy the file from file share to local
+                        WriteToLogs($"{DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss.fff")} Copying {new FileInfo(fileShareFile.Path).Name} to local folder");
+                        File.Copy(fileSharePath, localPath, true);
+                        WriteToLogs($"{DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss.fff")} File {new FileInfo(fileShareFile.Path).Name} successfully copied to local folder");
+                    }
                 }
-            }
 
-            WriteToLogs($"{DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss.fff")} Sync from fileshare folder completed");
+                WriteToLogs($"{DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss.fff")} Sync from fileshare folder completed");
+            }    
         }
 
         private void WriteToLogs(string msg)
