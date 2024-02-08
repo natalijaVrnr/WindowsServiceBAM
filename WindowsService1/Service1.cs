@@ -141,7 +141,14 @@ namespace WindowsService1
 
                         // Copy the file from local to file share
                         WriteToLogs($"{DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss.fff")} Copying {new FileInfo(localFile.Path).Name} to fileshare folder");
-                        File.Copy(localPath, fileSharePath, true);
+
+                        using (var sourceStream = new FileStream(localPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+                        using (var destinationStream = new FileStream(fileSharePath, FileMode.CreateNew))
+                        {
+                            sourceStream.CopyTo(destinationStream);
+                        }
+
+                        //File.Copy(localPath, fileSharePath, true);
                         WriteToLogs($"{DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss.fff")} File {new FileInfo(localFile.Path).Name} successfully copied to fileshare folder");
                     }
                 }
@@ -177,7 +184,14 @@ namespace WindowsService1
 
                         // Copy the file from file share to local
                         WriteToLogs($"{DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss.fff")} Copying {new FileInfo(fileShareFile.Path).Name} to local folder");
-                        File.Copy(fileSharePath, localPath, true);
+
+                        using (var sourceStream = new FileStream(fileSharePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+                        using (var destinationStream = new FileStream(localPath, FileMode.CreateNew))
+                        {
+                            sourceStream.CopyTo(destinationStream);
+                        }
+
+                        //File.Copy(fileSharePath, localPath, true);
                         WriteToLogs($"{DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss.fff")} File {new FileInfo(fileShareFile.Path).Name} successfully copied to local folder");
                     }
                 }
