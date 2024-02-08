@@ -14,13 +14,16 @@ namespace WindowsService1
         private string _localFolderPath = "";
         private string _fileSharePath = "";
         private string _logFolderPath = "";
+        private string _username = "";
+        private string _password = "";
 
         private readonly FileSystemWatcher _localWatcher = new FileSystemWatcher();
         private readonly FileSystemWatcher _fileShareWatcher = new FileSystemWatcher();
 
         private static object logFileLock = new object();
 
-        private NetworkCredential credentials = new NetworkCredential($@"DESKTOP-BHSHK2E\n.kundzina@gmail.com", "AmberHeard15");
+        private NetworkCredential credentials;
+        //private NetworkCredential credentials = new NetworkCredential($@"DESKTOP-BHSHK2E\n.kundzina@gmail.com", "AmberHeard15");
         public Service1()
         {
             InitializeComponent();
@@ -38,7 +41,11 @@ namespace WindowsService1
                 _localFolderPath = $@"{imagePathArgs[2]}";
                 _fileSharePath = $@"{imagePathArgs[4]}";
                 _logFolderPath = $@"{imagePathArgs[6]}";
-                
+                _username = $@"{imagePathArgs[8]}";
+                _password = $@"{imagePathArgs[10]}";
+
+                credentials = new NetworkCredential(_username, _password);
+
                 WriteToLogs($"{DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss.fff")} _localFolderPath: {_localFolderPath}");
                 WriteToLogs($"{DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss.fff")} _fileSharePath: {_fileSharePath}");
                 WriteToLogs($"{DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss.fff")} _logFolderPath: {_logFolderPath}");
