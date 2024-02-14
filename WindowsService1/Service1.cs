@@ -121,7 +121,7 @@ namespace WindowsService1
                 WriteToLogs($"{DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss.fff")} Sync from local folder started");
 
                 var matcher = new Matcher();
-                matcher.AddInclude("**/*.txt");
+                matcher.AddInclude("**/*.tmp");
 
                 var localDirectoryInfo = new DirectoryInfoWrapper(new DirectoryInfo(_localFolderPath));
                 var fileShareDirectoryInfo = new DirectoryInfoWrapper(new DirectoryInfo(_fileSharePath));
@@ -164,7 +164,7 @@ namespace WindowsService1
                 WriteToLogs($"{DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss.fff")} Sync from fileshare folder started");
 
                 var matcher = new Matcher();
-                matcher.AddInclude("**/*.txt");
+                matcher.AddInclude("**/*.tmp");
 
                 var localDirectoryInfo = new DirectoryInfoWrapper(new DirectoryInfo(_localFolderPath));
                 var fileShareDirectoryInfo = new DirectoryInfoWrapper(new DirectoryInfo(_fileSharePath));
