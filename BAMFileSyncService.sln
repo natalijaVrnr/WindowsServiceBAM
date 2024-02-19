@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.4.33213.308
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WindowsService1", "WindowsService1\WindowsService1.csproj", "{46F758B9-2E2E-498F-80AC-73CBD9D32941}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BAMFileSyncService", "WindowsService1\BAMFileSyncService.csproj", "{46F758B9-2E2E-498F-80AC-73CBD9D32941}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
