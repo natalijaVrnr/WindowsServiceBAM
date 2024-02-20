@@ -250,9 +250,9 @@ namespace WindowsService1
                             WriteToLogs($"{DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss.fff")} Failed to copy file {new FileInfo(fileShareFile.Path).Name} to local folder");
                         }
                     }
-
-                    WriteToLogs($"{DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss.fff")} Sync from fileshare folder completed");
                 }
+
+                WriteToLogs($"{DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss.fff")} Sync from fileshare folder completed");
             }
         }
 
