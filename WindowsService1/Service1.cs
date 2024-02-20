@@ -139,17 +139,45 @@ namespace WindowsService1
                     {
                         var localPath = Path.Combine(_localFolderPath, localFile.Path);
 
-                        // Copy the file from local to file share
-                        WriteToLogs($"{DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss.fff")} Copying {new FileInfo(localFile.Path).Name} to fileshare folder");
+                        bool success = false;
+                        int retries = 3; 
+                        int delayMilliseconds = 1000; 
 
-                        using (var sourceStream = new FileStream(localPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
-                        using (var destinationStream = new FileStream(fileSharePath, FileMode.CreateNew))
+                        while (!success && retries > 0)
                         {
-                            sourceStream.CopyTo(destinationStream);
+                            try
+                            {
+                                // Copy the file from local to fileshare
+                                WriteToLogs($"{DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss.fff")} Copying {new FileInfo(localFile.Path).Name} to fileshare folder");
+
+                                using (var sourceStream = new FileStream(localPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+                                using (var destinationStream = new FileStream(fileSharePath, FileMode.CreateNew))
+                                {
+                                    sourceStream.CopyTo(destinationStream);
+                                }
+
+                                //File.Copy(localPath, fileSharePath, true);
+                                WriteToLogs($"{DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss.fff")} File {new FileInfo(localFile.Path).Name} successfully copied to fileshare folder");
+
+                                success = true;
+                            }
+                            catch (Exception ex)
+                            {
+                                // Handle file access errors
+                                WriteToLogs($"{DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss.fff")} Error copying file {ex.Message} to fileshare folder. Retry {3 - (retries + 1)}");
+
+                                // Wait for a while before retrying
+                                System.Threading.Thread.Sleep(delayMilliseconds);
+
+                                retries--;
+                            }
                         }
 
-                        //File.Copy(localPath, fileSharePath, true);
-                        WriteToLogs($"{DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss.fff")} File {new FileInfo(localFile.Path).Name} successfully copied to fileshare folder");
+                        if (!success)
+                        {
+                            WriteToLogs($"{DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss.fff")} Failed to copy file {new FileInfo(localFile.Path).Name} to fileshare folder");
+                        }
+
                     }
                 }
 
@@ -182,22 +210,50 @@ namespace WindowsService1
                     {
                         var fileSharePath = Path.Combine(_fileSharePath, fileShareFile.Path);
 
-                        // Copy the file from file share to local
-                        WriteToLogs($"{DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss.fff")} Copying {new FileInfo(fileShareFile.Path).Name} to local folder");
+                        bool success = false;
+                        int retries = 3;
+                        int delayMilliseconds = 1000;
 
-                        using (var sourceStream = new FileStream(fileSharePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
-                        using (var destinationStream = new FileStream(localPath, FileMode.CreateNew))
+                        while (!success && retries > 0)
                         {
-                            sourceStream.CopyTo(destinationStream);
+                            try
+                            {
+                                // Copy the file from file share to local
+                                WriteToLogs($"{DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss.fff")} Copying {new FileInfo(fileShareFile.Path).Name} to local folder");
+
+                                using (var sourceStream = new FileStream(fileSharePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+                                using (var destinationStream = new FileStream(localPath, FileMode.CreateNew))
+                                {
+                                    sourceStream.CopyTo(destinationStream);
+                                }
+
+                                //File.Copy(fileSharePath, localPath, true);
+                                WriteToLogs($"{DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss.fff")} File {new FileInfo(fileShareFile.Path).Name} successfully copied to local folder");
+
+                                success = true;
+                            }
+
+                            catch (Exception ex)
+                            {
+                                // Handle file access errors
+                                WriteToLogs($"{DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss.fff")} Error copying file {ex.Message} to local folder. Retry {3 - (retries + 1)}");
+
+                                // Wait for a while before retrying
+                                System.Threading.Thread.Sleep(delayMilliseconds);
+
+                                retries--;
+                            }
                         }
 
-                        //File.Copy(fileSharePath, localPath, true);
-                        WriteToLogs($"{DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss.fff")} File {new FileInfo(fileShareFile.Path).Name} successfully copied to local folder");
+                        if (!success)
+                        {
+                            WriteToLogs($"{DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss.fff")} Failed to copy file {new FileInfo(fileShareFile.Path).Name} to local folder");
+                        }
                     }
-                }
 
-                WriteToLogs($"{DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss.fff")} Sync from fileshare folder completed");
-            }    
+                    WriteToLogs($"{DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss.fff")} Sync from fileshare folder completed");
+                }
+            }
         }
 
         private void WriteToLogs(string msg)
