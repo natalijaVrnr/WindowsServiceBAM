@@ -164,7 +164,7 @@ namespace WindowsService1
                             catch (Exception ex)
                             {
                                 // Handle file access errors
-                                WriteToLogs($"{DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss.fff")} Error copying file {ex.Message} to fileshare folder. Retry {3 - (retries + 1)}");
+                                WriteToLogs($"{DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss.fff")} Error copying file {ex.Message} to fileshare folder. Retry {4 - retries}");
 
                                 // Wait for a while before retrying
                                 System.Threading.Thread.Sleep(delayMilliseconds);
@@ -236,7 +236,7 @@ namespace WindowsService1
                             catch (Exception ex)
                             {
                                 // Handle file access errors
-                                WriteToLogs($"{DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss.fff")} Error copying file {ex.Message} to local folder. Retry {3 - (retries + 1)}");
+                                WriteToLogs($"{DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss.fff")} Error copying file {ex.Message} to local folder. Retry {4 - retries}");
 
                                 // Wait for a while before retrying
                                 System.Threading.Thread.Sleep(delayMilliseconds);
