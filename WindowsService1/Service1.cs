@@ -118,22 +118,23 @@ namespace WindowsService1
         {
             using (new NetworkConnection(_fileSharePath, credentials))
             {
-                WriteToLogs($"{DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss.fff")} Sync from local folder started");
+                WriteToLogs($"{DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss.fff")} Sync from local folder triggered");
 
                 var matcher = new Matcher();
-                matcher.AddInclude("**/*.tmp");
+                matcher.AddInclude("**/vfpCmds.tmp");
 
                 var localDirectoryInfo = new DirectoryInfoWrapper(new DirectoryInfo(_localFolderPath));
                 var fileShareDirectoryInfo = new DirectoryInfoWrapper(new DirectoryInfo(_fileSharePath));
 
                 // Sync from local to file share
                 var localFiles = matcher.Execute(localDirectoryInfo);
-                WriteToLogs($"{DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss.fff")} Found {localFiles.Files.Count()} files in local folder");
 
                 foreach (var localFile in localFiles.Files)
                 {
                     var fileSharePath = Path.Combine(fileShareDirectoryInfo.FullName, localFile.Path);
                     var fileShareFileInfo = new FileInfo(fileSharePath);
+
+                    WriteToLogs($"{DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss.fff")} Found vfpCmds.tmp in local folder");
 
                     if (!fileShareFileInfo.Exists)
                     {
@@ -158,6 +159,11 @@ namespace WindowsService1
 
                                 //File.Copy(localPath, fileSharePath, true);
                                 WriteToLogs($"{DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss.fff")} File {new FileInfo(localFile.Path).Name} successfully copied to fileshare folder");
+
+                                //Delete from fileshare
+                                File.Delete(localPath);
+
+                                WriteToLogs($"{DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss.fff")} File {new FileInfo(localFile.Path).Name} successfully deleted from local folder");
 
                                 success = true;
                             }
@@ -189,22 +195,23 @@ namespace WindowsService1
         {
             using (new NetworkConnection(_fileSharePath, credentials))
             {
-                WriteToLogs($"{DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss.fff")} Sync from fileshare folder started");
+                WriteToLogs($"{DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss.fff")} Sync from fileshare folder triggered");
 
                 var matcher = new Matcher();
-                matcher.AddInclude("**/*.tmp");
+                matcher.AddInclude("**/vfpResult.tmp");
 
                 var localDirectoryInfo = new DirectoryInfoWrapper(new DirectoryInfo(_localFolderPath));
                 var fileShareDirectoryInfo = new DirectoryInfoWrapper(new DirectoryInfo(_fileSharePath));
 
                 // Sync from file share to local
                 var fileShareFiles = matcher.Execute(fileShareDirectoryInfo);
-                WriteToLogs($"{DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss.fff")} Found {fileShareFiles.Files.Count()} files in fileshare folder");
 
                 foreach (var fileShareFile in fileShareFiles.Files)
                 {
                     var localPath = Path.Combine(localDirectoryInfo.FullName, fileShareFile.Path);
                     var localFileInfo = new FileInfo(localPath);
+
+                    WriteToLogs($"{DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss.fff")} Found vfpResult.tmp in fileshare folder");
 
                     if (!localFileInfo.Exists)
                     {
@@ -229,6 +236,9 @@ namespace WindowsService1
 
                                 //File.Copy(fileSharePath, localPath, true);
                                 WriteToLogs($"{DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss.fff")} File {new FileInfo(fileShareFile.Path).Name} successfully copied to local folder");
+
+                                //Delete from fileshare
+                                File.Delete(fileSharePath);
 
                                 success = true;
                             }
