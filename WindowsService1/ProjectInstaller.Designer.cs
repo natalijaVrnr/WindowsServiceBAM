@@ -39,7 +39,7 @@
             // 
             // serviceInstaller1
             // 
-            this.serviceInstaller1.ServiceName = "BAMFileSyncService";
+            this.serviceInstaller1.ServiceName = "POSFileSyncService";
             this.serviceInstaller1.Description = "File sync Windows Service";
             // 
             // ProjectInstaller
