@@ -26,12 +26,12 @@ namespace WindowsService1
 
         private NetworkCredential _fileShareCredentials;
         private NetworkCredential _localFolderCredentials;
-        //private NetworkCredential credentials = new NetworkCredential($@"DESKTOP-BHSHK2E\n.kundzina@gmail.com", "AmberHeard15");
         public Service1()
         {
             InitializeComponent();
         }
 
+        // executed when service is being started
         [PermissionSet(SecurityAction.Demand, Name = "FullTrust")]
         protected override void OnStart(string[] args)
         {
@@ -41,6 +41,7 @@ namespace WindowsService1
 
                 string[] imagePathArgs = Environment.GetCommandLineArgs();
 
+                // gettings all variable values from imagepath variable (the one edited in regedit)
                 _localFolderPath = $@"{imagePathArgs[2]}";
                 _fileSharePath = $@"{imagePathArgs[4]}";
                 _logFolderPath = $@"{imagePathArgs[6]}";
@@ -51,7 +52,7 @@ namespace WindowsService1
                 _fileShareUsername = $@"{imagePathArgs[12]}";
                 _fileSharePassword = $@"{imagePathArgs[14]}";
 
-
+                // establishing network connection credentials
                 _localFolderCredentials = new NetworkCredential(_localFolderUsername, _localFolderPassword);
                 _fileShareCredentials = new NetworkCredential(_fileShareUsername, _fileSharePassword);
 
@@ -65,6 +66,7 @@ namespace WindowsService1
 
                 WriteToLogs($"{DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss.fff")} Setting up local folder watcher");
 
+                // setting file watchers for local folder and for fileshare
                 using (new NetworkConnection(_localFolderPath, _localFolderCredentials))
                 {
                     _localWatcher.Path = _localFolderPath;
@@ -83,8 +85,11 @@ namespace WindowsService1
                     _fileShareWatcher.Created += OnChangedFileshare;
                 }
 
-                SyncFilesFromLocal();
+                // initial sync - there maybe errors from fromlocal sync if fileshare manages to transfer some files and localsync will be called already before local folder sync method is called, but that is okay
+                // we need to call both methods to make sure the folders are synced
+
                 SyncFilesFromFileshare();
+                SyncFilesFromLocal();
             }
             catch (Exception ex)
             {
@@ -92,6 +97,7 @@ namespace WindowsService1
             }
         }
 
+        // executed when service is being stopped
         protected override void OnStop()
         {
             try
@@ -131,6 +137,7 @@ namespace WindowsService1
             }
         }
 
+        // sync from local to file share
         private void SyncFilesFromLocal()
         {
             using (new NetworkConnection(_localFolderPath, _localFolderCredentials))
@@ -139,17 +146,19 @@ namespace WindowsService1
                 {
                     WriteToLogs($"{DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss.fff")} Sync from local folder triggered");
 
+                    // setting matcher for detecting file
                     var matcher = new Matcher();
                     matcher.AddInclude("**/vfpCmds.tmp");
 
                     var localDirectoryInfo = new DirectoryInfoWrapper(new DirectoryInfo(_localFolderPath));
                     var fileShareDirectoryInfo = new DirectoryInfoWrapper(new DirectoryInfo(_fileSharePath));
 
-                    // Sync from local to file share
+                    // fetching all files that match the matcher
                     var localFiles = matcher.Execute(localDirectoryInfo);
 
                     foreach (var localFile in localFiles.Files)
                     {
+                        // constructing the same path in fileshare folder to check if file already exists there
                         var fileSharePath = Path.Combine(fileShareDirectoryInfo.FullName, localFile.Path);
                         var fileShareFileInfo = new FileInfo(fileSharePath);
 
@@ -163,11 +172,12 @@ namespace WindowsService1
                             int retries = 3;
                             int delayMilliseconds = 1000;
 
+                            // 3 retries with 1 second delay between each, after that consider as failed
                             while (!success && retries > 0)
                             {
                                 try
                                 {
-                                    // Copy the file from local to fileshare
+                                    // copy the file from local to fileshare
                                     WriteToLogs($"{DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss.fff")} Copying {new FileInfo(localFile.Path).Name} to fileshare folder");
 
                                     using (var sourceStream = new FileStream(localPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
@@ -176,22 +186,21 @@ namespace WindowsService1
                                         sourceStream.CopyTo(destinationStream);
                                     }
 
-                                    //File.Copy(localPath, fileSharePath, true);
                                     WriteToLogs($"{DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss.fff")} File {new FileInfo(localFile.Path).Name} successfully copied to fileshare folder");
 
-                                    //Delete from fileshare
+                                    // delete the file from fileshare
                                     File.Delete(localPath);
 
                                     WriteToLogs($"{DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss.fff")} File {new FileInfo(localFile.Path).Name} successfully deleted from local folder");
 
                                     success = true;
                                 }
+                                // handle file access errors
                                 catch (Exception ex)
                                 {
-                                    // Handle file access errors
                                     WriteToLogs($"{DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss.fff")} Error copying file {ex.Message} to fileshare folder. Retry {4 - retries}");
 
-                                    // Wait for a while before retrying
+                                    // wait for a while before retrying
                                     System.Threading.Thread.Sleep(delayMilliseconds);
 
                                     retries--;
@@ -222,11 +231,15 @@ namespace WindowsService1
                     var matcher = new Matcher();
                     matcher.AddInclude("**/vfpResult.tmp");
 
+                    var matcherCmds = new Matcher();
+                    matcherCmds.AddInclude("**/vfpCmds.tmp");
+
                     var localDirectoryInfo = new DirectoryInfoWrapper(new DirectoryInfo(_localFolderPath));
                     var fileShareDirectoryInfo = new DirectoryInfoWrapper(new DirectoryInfo(_fileSharePath));
 
                     // Sync from file share to local
                     var fileShareFiles = matcher.Execute(fileShareDirectoryInfo);
+                    var cmdFiles = matcherCmds.Execute(fileShareDirectoryInfo);
 
                     foreach (var fileShareFile in fileShareFiles.Files)
                     {
@@ -284,7 +297,19 @@ namespace WindowsService1
                         }
                     }
 
-                    WriteToLogs($"{DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss.fff")} Sync from fileshare folder completed");
+                    // delete cmd file if there is any and after result file has been copied to local folder
+                    if (fileShareFiles.Files.Count() > 0)
+                    {
+                        foreach (var cmdFile in cmdFiles.Files)
+                        {
+                            WriteToLogs($"{DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss.fff")} Deleting file {new FileInfo(cmdFile.Path).Name} from fileshare folder");
+                            var fileSharePath = Path.Combine(_fileSharePath, cmdFile.Path);
+                            File.Delete(fileSharePath);
+                        }
+
+                        WriteToLogs($"{DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss.fff")} Sync from fileshare folder completed");
+                    }
+                    
                 }
             }
         }
